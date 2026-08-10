@@ -223,7 +223,7 @@ function initAudio(){
     fadeIn: 3,
     fadeOut: 3,
     volume: -10,
-    onload: ()=>{ if (!muted) musicPlayer.start(); }
+    onload: ()=>{ musicPlayer.mute = muted; musicPlayer.start(); }
   }).toDestination();
 
   chimeSynth = new Tone.Synth({
@@ -251,7 +251,7 @@ muteBtn.onclick = (e)=>{
   muted = !muted;
   muteBtn.textContent = muted ? '🔇' : '🔊';
   if (!audioStarted) { Tone.start().then(initAudio); }
-  else if (musicPlayer) { musicPlayer.mute = muted; }
+  if (musicPlayer) { musicPlayer.mute = muted; }
 };
 
 /* ============ Zodiac halo ring ============ */
