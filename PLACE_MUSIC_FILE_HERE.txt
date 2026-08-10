@@ -1,0 +1,11 @@
+ไฟล์เพลงยังไม่ได้ใส่ไว้ในนี้ (ไฟล์เสียงมีขนาดใหญ่ ไม่สามารถแนบให้อัตโนมัติได้)
+
+วิธีเตรียมไฟล์:
+1. เปิดลิงก์ https://audio.com/nhatquangmusescore/audio/merry-christmas-mr-lawrence
+2. กดปุ่ม "Download" บนหน้านั้น
+3. เปลี่ยนชื่อไฟล์ที่โหลดมาเป็น: merry-christmas-mr-lawrence.mp3
+4. อัปโหลดไฟล์นั้นมาไว้ในโฟลเดอร์นี้ (assets/audio/) แทนที่ไฟล์ .txt นี้ได้เลย
+
+ลิขสิทธิ์: เพลงนี้อยู่ภายใต้สัญญาอนุญาต Creative Commons Attribution 4.0 (CC BY)
+เรียบเรียงเปียโนโดย NhatQuangMusescore จากต้นฉบับของ Ryuichi Sakamoto
+ต้องใส่เครดิตไว้เสมอ (index.html ใส่เครดิตนี้ไว้ในหน้าเครดิตท้ายเกมให้แล้ว)

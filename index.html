@@ -207,33 +207,34 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 /* ============ Audio engine (synthesized — ไม่ต้องมีไฟล์เสียงแยก) ============ */
 let audioStarted = false;
 let muted = false;
-let pad, chimeSynth, reverb;
+let musicPlayer, chimeSynth, reverb;
 
 function initAudio(){
   if (audioStarted) return;
   audioStarted = true;
-  reverb = new Tone.Reverb({ decay: 6, wet: 0.35 }).toDestination();
-  pad = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'sine' },
-    envelope: { attack: 2.2, decay: 1, sustain: 0.6, release: 4 }
-  }).connect(reverb);
-  pad.volume.value = -20;
+  reverb = new Tone.Reverb({ decay: 4, wet: 0.2 }).toDestination();
+
+  /* เพลงประกอบจริง: "Merry Christmas, Mr. Lawrence" เรียบเรียงเปียโนโดย NhatQuangMusescore
+     (CC BY 4.0 — ต้องใส่เครดิตตามที่แสดงในหน้าเครดิตท้ายเกม)
+     ไฟล์ต้องอยู่ที่ assets/audio/merry-christmas-mr-lawrence.mp3 ในโฟลเดอร์เดียวกับ index.html */
+  musicPlayer = new Tone.Player({
+    url: 'assets/audio/merry-christmas-mr-lawrence.mp3',
+    loop: true,
+    fadeIn: 3,
+    fadeOut: 3,
+    volume: -10,
+    onload: ()=>{ if (!muted) musicPlayer.start(); }
+  }).toDestination();
 
   chimeSynth = new Tone.Synth({
     oscillator: { type: 'triangle' },
     envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.4 }
   }).connect(reverb);
   chimeSynth.volume.value = -15;
-
-  const chordPool = [['C4','E4','G4'],['A3','C4','E4'],['F3','A3','C4'],['G3','B3','D4']];
-  let ci = 0;
-  new Tone.Loop((time)=>{
-    if (muted) return;
-    pad.triggerAttackRelease(chordPool[ci % chordPool.length], '4n', time);
-    ci++;
-  }, 6.5).start(0.2);
-
-  Tone.Transport.start();
+}
+function fadeOutMusic(seconds){
+  if (!audioStarted || !musicPlayer) return;
+  musicPlayer.volume.rampTo(-40, seconds || 3);
 }
 function playChime(note){
   if (!audioStarted || muted) return;
@@ -249,7 +250,8 @@ muteBtn.onclick = (e)=>{
   e.stopPropagation();
   muted = !muted;
   muteBtn.textContent = muted ? '🔇' : '🔊';
-  if (!audioStarted) Tone.start().then(initAudio);
+  if (!audioStarted) { Tone.start().then(initAudio); }
+  else if (musicPlayer) { musicPlayer.mute = muted; }
 };
 
 /* ============ Zodiac halo ring ============ */
@@ -333,6 +335,15 @@ function getZodiac(month, day){
     }
   }
   return ZODIAC[0];
+}
+
+/* ลัคนา (Ascendant) แบบประมาณการง่ายๆ เพื่อความสนุกในเกม — ไม่ใช่การคำนวณโหราศาสตร์แม่นยำ
+   หลักคิดพื้นบ้าน: ราศีลัคนา ≈ ราศีดวงอาทิตย์ตอนพระอาทิตย์ขึ้น (~06:00) แล้วขยับไปหนึ่งราศีทุก 2 ชม. */
+function getAscendantSign(sunZodiac, hour){
+  const sunIndex = ZODIAC.findIndex(z => z.name === sunZodiac.name);
+  const shift = Math.floor((hour - 6) / 2);
+  const ascIndex = ((sunIndex + shift) % 12 + 12) % 12;
+  return ZODIAC[ascIndex].name;
 }
 
 /* ============ Character SVG ============ */
@@ -430,7 +441,13 @@ function wireForm(){
     const month = d.getMonth()+1, day = d.getDate();
     const zodiac = getZodiac(month, day);
     const hasTime = !noTime.checked && !!timeVal;
-    profile = { zodiac, hasTime };
+    let ascendantItem = null;
+    if (hasTime){
+      const hour = parseInt(timeVal.split(':')[0], 10);
+      const ascName = getAscendantSign(zodiac, hour);
+      ascendantItem = ASCENDANT_ITEMS[ascName] ? { sign: ascName, ...ASCENDANT_ITEMS[ascName] } : null;
+    }
+    profile = { zodiac, hasTime, ascendantItem };
     swap(loadingHTML(), ()=>runLoading());
   };
 }
@@ -457,7 +474,7 @@ function runLoading(){
         charWrap.classList.add('show');
         setTimeout(()=>{
           zLine.innerHTML = `${profile.zodiac.name} · ${profile.zodiac.catTitle}` +
-            (profile.hasTime ? `<br><span style="opacity:0.85;">✨ ไอเทมคู่ใจลับที่ปลุกพลังแท้จริง: ${profile.zodiac.item}</span>` : '');
+            (profile.ascendantItem ? `<br><span style="opacity:0.85;">✨ ของเล่นตามลัคนา${profile.ascendantItem.sign}: ${profile.ascendantItem.item}</span>` : '');
           zLine.classList.add('show');
           setTimeout(()=>{
             const btn = document.getElementById('letGoBtn');
@@ -472,12 +489,13 @@ function runLoading(){
   next();
 }
 
-/* ============ Step 4: Career choice ============ */
+/* ============ Step 4: Identity ============ */
 function careerHTML(){
   return `
     <div class="tagline">จากดวงของคุณ ตัวละครนี้คือ...</div>
     <div class="title show" style="font-size:clamp(22px,3.8vw,30px);">${profile.zodiac.catTitle}</div>
     <div class="reaction-line show">${profile.zodiac.trait}</div>
+    <div class="reaction-line show" style="opacity:0.7;">มักเห็นได้จาก: ${profile.zodiac.activity}</div>
     <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใกล้เคียงกับฉัน</button>
@@ -500,11 +518,11 @@ function bindChoice(after){
   });
 }
 
-/* ============ Step 5: Happy ============ */
+/* ============ Step 5: อนาคต/ความหวัง ============ */
 function happyHTML(){
   return `
-    <div class="tagline">ลองดูสิ ว่านี่คือสิ่งที่ทำให้คุณมีความสุขไหม?</div>
-    <div class="title show" style="font-size:clamp(17px,3vw,22px);">${profile.zodiac.like}</div>
+    <div class="tagline">อะไรคือสิ่งที่จะทำให้คุณมีความสุขและมีแรงใจต่อจากนี้?</div>
+    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.hope}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
       <button class="choice-btn decline" data-v="no">ไม่ค่อยใช่</button>
@@ -513,21 +531,46 @@ function happyHTML(){
 }
 function wireHappy(){ bindChoice(()=> swap(sadHTML(), wireSad)); }
 
-/* ============ Step 6: Sad ============ */
+/* ============ Step 6: อุปสรรค/การป้องกัน ============ */
 function sadHTML(){
   return `
-    <div class="tagline">แล้วสิ่งนี้ล่ะ... เคยทำให้คุณหงุดหงิดหรือหมดพลังไหม?</div>
-    <div class="title show" style="font-size:clamp(17px,3vw,22px);">${profile.zodiac.dislike}</div>
-    <div class="reaction-line show" style="opacity:0.7;">ข้อควรระวังของคุณ: ${profile.zodiac.weakness}</div>
+    <div class="tagline">แล้วอะไรล่ะ ที่อาจทำให้คุณหงุดหงิดหรือหมดพลัง?</div>
+    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.obstacle}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่ ตรงจุด</button>
       <button class="choice-btn decline" data-v="no">ไม่เชิง</button>
     </div>
     <div class="reaction-line" id="reactLine"></div>`;
 }
-function wireSad(){ bindChoice(()=> swap(goalHTML(), wireGoal)); }
+function wireSad(){ bindChoice(()=> swap(potentialHTML(), wirePotential)); }
 
-/* ============ Step 7: Life goal ============ */
+/* ============ Step 7: ตัวตน/ศักยภาพ ============ */
+function potentialHTML(){
+  return `
+    <div class="tagline">ลึก ๆ แล้ว นี่คือศักยภาพที่แท้จริงของคุณหรือเปล่า?</div>
+    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.identity}</div>
+    <div class="choice-row show">
+      <button class="choice-btn affirm" data-v="yes">ใช่ นี่แหละฉัน</button>
+      <button class="choice-btn decline" data-v="no">ยังไม่ค่อยเห็นแบบนั้น</button>
+    </div>
+    <div class="reaction-line" id="reactLine"></div>`;
+}
+function wirePotential(){ bindChoice(()=> swap(relationshipHTML(), wireRelationship)); }
+
+/* ============ Step 8: ความสัมพันธ์ ============ */
+function relationshipHTML(){
+  return `
+    <div class="tagline">แล้วในความสัมพันธ์ล่ะ คุณต้องการแบบนี้ไหม?</div>
+    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.relationship}</div>
+    <div class="choice-row show">
+      <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
+      <button class="choice-btn decline" data-v="no">ไม่ค่อยตรง</button>
+    </div>
+    <div class="reaction-line" id="reactLine"></div>`;
+}
+function wireRelationship(){ bindChoice(()=> swap(goalHTML(), wireGoal)); }
+
+/* ============ Step 9: Life goal ============ */
 function goalHTML(){
   return `
     <div class="tagline">ตอนนี้คุณรู้จักตัวละครตัวนี้แล้ว...<br>เป้าหมายสูงสุดในเกมชีวิตเวอร์ชันนี้ของคุณคืออะไร?</div>
@@ -538,6 +581,7 @@ function goalHTML(){
 function wireGoal(){
   document.getElementById('releaseBtn').onclick = ()=> rotateTo(endingHTML(), runEnding);
 }
+
 
 /* ============ Step 8: Ending ============ */
 function endingHTML(){
@@ -577,6 +621,7 @@ function runEnding(){
 /* ============ Step 9: Credits (หน้า 12) ============ */
 function creditsHTML(){ return ``; }
 function runCredits(){
+  fadeOutMusic(5);
   setTimeout(()=>{
     content.classList.add('fading');
     setTimeout(()=>{
@@ -585,7 +630,8 @@ function runCredits(){
           <div class="char-wrap show" style="width:64px; height:64px; flex-shrink:0;">${starCharSVG()}</div>
           <div class="tagline" id="creditsLine" style="text-align:left; min-height:3.4em;"></div>
         </div>
-        <div class="reaction-line" id="restartLine" style="margin-top:26px; cursor:pointer;">↺ เริ่มใหม่</div>`;
+        <div class="reaction-line" id="restartLine" style="margin-top:26px; cursor:pointer;">↺ เริ่มใหม่</div>
+        <div class="privacy-note" style="margin-top:18px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>`;
       content.classList.remove('fading');
       typewrite(document.getElementById('creditsLine'),
         'สวัสดีค่ะ นี่คือโปรเจกต์ของ น.ส. ธนพร สุรเกียรติขจร ปวส.2/2 ค่ะ\nหวังว่า...',
