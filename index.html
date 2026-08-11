@@ -426,7 +426,7 @@ function stepOpening(){
   const gameTitle = document.getElementById('gameTitle');
   const startBtn = document.getElementById('startBtn');
   setTimeout(()=>{
-    typewrite(taglineText, 'ถ้าชีวิตนี้เป็นเกม...\nคุณจะรู้จักตัวละครของตัวเองดีแค่ไหน?', 30, 600, ()=>{
+    typewrite(taglineText, 'ถ้าชีวิตนี้เป็นเกม...\nคุณจะรู้จักตัวละครของตัวเองดีแค่ไหน?', 30, 500, ()=>{
       setTimeout(()=>{ gameTitle.classList.add('show'); playChime('E5'); setTimeout(()=>{startBtn.classList.add('show'); playChime('C5');},900); },400);
     });
   },500);
