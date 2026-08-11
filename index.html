@@ -596,18 +596,25 @@ function wireGoal(){
 
 /* ============ Step 8: Ending ============ */
 function endingHTML(){
-  return `<div class="char-wrap show" id="endChar">${charSVG()}</div>
+  return `<div class="video-wrap show" id="endChar" style="width:180px;">
+      <video id="endVideo" src="assets/video/ending/${profile.zodiac.video}" muted autoplay playsinline></video>
+    </div>
     <div class="reaction-line" id="endLine1" style="font-size:13px;"></div>
     <div class="tagline" id="endLine2" style="opacity:0;transition:opacity 2s var(--ease-drift);"></div>`;
 }
 function runEnding(){
   document.getElementById('endLine1').classList.add('show');
   document.getElementById('endLine1').textContent = 'ตัวละครเก็บม้วนกระดาษลงกล่องสมบัติ...';
-  setTimeout(()=>{
+
+  const video = document.getElementById('endVideo');
+  let proceeded = false;
+  function proceed(){
+    if (proceeded) return;
+    proceeded = true;
     document.getElementById('box').style.opacity='1';
     setTimeout(()=>{
       document.getElementById('universe').classList.add('zoomOut');
-      document.getElementById('endChar').style.opacity='0.5';
+      document.getElementById('endChar').style.opacity='0'; // วิดีโอค่อยๆจางหายไปจนหมด (2s ตาม .video-wrap)
       setTimeout(()=>{
         document.getElementById('earth').style.opacity='1';
         document.getElementById('box').style.transform='translate(-50%, 32vh) scale(0.3)';
@@ -626,7 +633,10 @@ function runEnding(){
         }, 2400);
       }, 1600);
     }, 1800);
-  }, 1600);
+  }
+  // ไปต่อทันทีที่วิดีโอเล่นจบ (เล่นครั้งเดียว ไม่วน) — มี fallback เผื่อวิดีโอโหลด/เล่นไม่สำเร็จ
+  video.addEventListener('ended', proceed);
+  setTimeout(proceed, 12000);
 }
 
 /* ============ Step 9: Credits (หน้า 12) ============ */
