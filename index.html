@@ -94,6 +94,17 @@
   .video-wrap.show { opacity:1; }
   .video-wrap video { width:100%; display:block; }
 
+  .ending-stage { position:relative; width:180px; display:flex; justify-content:center; }
+  .ending-caption {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:230px; text-align:center; opacity:0;
+    transition:opacity 2s var(--ease-drift);
+    font-family:var(--font-ui); font-weight:300; font-size:14px; line-height:1.9;
+    color:var(--color-text-primary);
+    background:rgba(11,15,38,0.55); backdrop-filter:blur(4px);
+    border-radius:18px; padding:18px 16px;
+  }
+
   .reaction-line { font-family: var(--font-ui); font-weight:300; font-size:14px; color:var(--color-text-muted); min-height:1.4em; opacity:0; transition:opacity 1s ease; }
   .reaction-line.show { opacity:1; }
 
@@ -596,47 +607,62 @@ function wireGoal(){
 
 /* ============ Step 8: Ending ============ */
 function endingHTML(){
-  return `<div class="video-wrap show" id="endChar" style="width:180px;">
-      <video id="endVideo" src="assets/video/ending/${profile.zodiac.video}" muted autoplay playsinline></video>
+  return `<div class="ending-stage">
+      <div class="video-wrap show" id="endChar" style="width:180px;">
+        <video id="endVideo" src="assets/video/ending/${profile.zodiac.video}" muted autoplay playsinline></video>
+      </div>
+      <div class="ending-caption" id="endLine2"></div>
     </div>
-    <div class="reaction-line" id="endLine1" style="font-size:13px;"></div>
-    <div class="tagline" id="endLine2" style="opacity:0;transition:opacity 2s var(--ease-drift);"></div>`;
+    <div class="reaction-line" id="endLine1" style="font-size:13px; margin-top:16px;"></div>`;
 }
 function runEnding(){
   document.getElementById('endLine1').classList.add('show');
   document.getElementById('endLine1').textContent = 'ตัวละครเก็บม้วนกระดาษลงกล่องสมบัติ...';
 
   const video = document.getElementById('endVideo');
-  let proceeded = false;
-  function proceed(){
-    if (proceeded) return;
-    proceeded = true;
-    document.getElementById('box').style.opacity='1';
+  const endChar = document.getElementById('endChar');
+  const l2 = document.getElementById('endLine2');
+
+  let fadeStarted = false, textStarted = false, finished = false;
+
+  function startFade(){
+    if (fadeStarted) return;
+    fadeStarted = true;
+    endChar.style.transition = 'opacity 3s ease'; // วิดีโอค่อยๆ เลือนลางไปในช่วง 3 วิสุดท้ายขณะยังเล่นอยู่
+    endChar.style.opacity = '0';
+    document.getElementById('box').style.opacity = '1';
+    document.getElementById('universe').classList.add('zoomOut');
+  }
+  function startText(){
+    if (textStarted) return;
+    textStarted = true;
+    document.getElementById('earth').style.opacity = '1';
+    document.getElementById('box').style.transform = 'translate(-50%, 32vh) scale(0.3)';
+    document.getElementById('box').style.opacity = '0';
+    l2.innerHTML = 'โลกแห่งความฝัน จะอยู่ที่เดิมเสมอ<br>แต่ความฝันของคุณ...<br>ไม่ได้อยู่ที่นี่<br>มันกำลังรอให้คุณไปค้นพบ';
+    l2.style.opacity = '1'; // ทับซ้อนขึ้นมาช้าๆ ตรงกลางวิดีโอ ในช่วง 2 วิสุดท้าย
+  }
+  function finish(){
+    if (finished) return;
+    finished = true;
     setTimeout(()=>{
-      document.getElementById('universe').classList.add('zoomOut');
-      document.getElementById('endChar').style.opacity='0'; // วิดีโอค่อยๆจางหายไปจนหมด (2s ตาม .video-wrap)
-      setTimeout(()=>{
-        document.getElementById('earth').style.opacity='1';
-        document.getElementById('box').style.transform='translate(-50%, 32vh) scale(0.3)';
-        document.getElementById('box').style.opacity='0';
-        setTimeout(()=>{
-          const l2 = document.getElementById('endLine2');
-          l2.innerHTML = 'โลกแห่งความฝัน จะอยู่ที่เดิมเสมอ<br>แต่ความฝันของคุณ...<br>ไม่ได้อยู่ที่นี่<br>มันกำลังรอให้คุณไปค้นพบ';
-          l2.style.opacity='1';
-          setTimeout(()=>{
-            const btn = document.createElement('button');
-            btn.className='pill-btn'; btn.textContent='ออกเดินทาง';
-            content.appendChild(btn);
-            requestAnimationFrame(()=> btn.classList.add('show'));
-            btn.onclick = ()=> rotateTo(creditsHTML(), runCredits);
-          }, 2600);
-        }, 2400);
-      }, 1600);
+      const btn = document.createElement('button');
+      btn.className='pill-btn'; btn.textContent='ออกเดินทาง';
+      content.appendChild(btn);
+      requestAnimationFrame(()=> btn.classList.add('show'));
+      btn.onclick = ()=> rotateTo(creditsHTML(), runCredits);
     }, 1800);
   }
-  // ไปต่อทันทีที่วิดีโอเล่นจบ (เล่นครั้งเดียว ไม่วน) — มี fallback เผื่อวิดีโอโหลด/เล่นไม่สำเร็จ
-  video.addEventListener('ended', proceed);
-  setTimeout(proceed, 12000);
+
+  video.addEventListener('timeupdate', ()=>{
+    if (!video.duration) return;
+    const remaining = video.duration - video.currentTime;
+    if (remaining <= 3) startFade();
+    if (remaining <= 2) startText();
+  });
+  video.addEventListener('ended', finish);
+  // fallback เผื่อวิดีโอโหลด/เล่นไม่สำเร็จ (ยาวกว่าความยาววิดีโอจริงที่ ~10 วิ)
+  setTimeout(()=>{ startFade(); startText(); finish(); }, 13000);
 }
 
 /* ============ Step 9: Credits (หน้า 12) ============ */
