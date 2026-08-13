@@ -426,7 +426,7 @@ function stepOpening(){
   const gameTitle = document.getElementById('gameTitle');
   const startBtn = document.getElementById('startBtn');
   setTimeout(()=>{
-    typewrite(taglineText, 'ถ้าชีวิตนี้เป็นเกม...\nคุณจะรู้จักตัวละครของตัวเองดีแค่ไหน?', 30, 500, ()=>{
+    typewrite(taglineText, 'ถ้าชีวิตนี้เป็นเกม...\nคุณจะรู้จักตัวละครของตัวเองดีแค่ไหน?', 30, 600, ()=>{
       setTimeout(()=>{ gameTitle.classList.add('show'); playChime('E5'); setTimeout(()=>{startBtn.classList.add('show'); playChime('C5');},900); },400);
     });
   },500);
@@ -526,7 +526,10 @@ function careerHTML(){
     <div class="reaction-line" id="reactLine"></div>`;
 }
 function wireCareer(){
-  bindChoice(()=> swap(happyHTML(), wireHappy));
+  bindChoice(()=> {
+    if (profile.hasTime && profile.ascendantItem) swap(ascendantHTML(), wireAscendant);
+    else swap(happyHTML(), wireHappy);
+  });
 }
 function bindChoice(after){
   const btns = document.querySelectorAll('.choice-btn');
@@ -538,6 +541,27 @@ function bindChoice(after){
     line.classList.add('show');
     setTimeout(after, 1900);
   });
+}
+
+/* ============ Step 4.5: ลัคนา (เฉพาะผู้กรอกเวลาเกิด) ============ */
+function ascendantHTML(){
+  return `
+    <div class="tagline">ราศีบอกว่าคุณ "เป็นใคร" แต่ลัคนาบอกว่าคุณ "ดูเป็นใคร" ในสายตาคนแรกที่พบ<br>
+    เป็นมุมของท้องฟ้าที่ลอยขึ้นพอดีตอนที่คุณลืมตาดูโลกครั้งแรก<br>
+    รู้ได้เฉพาะคนที่รู้เวลาเกิดแน่ชัดเท่านั้น</div>
+    <div class="reaction-line show" style="opacity:0.8;">และของเล่นชิ้นโปรดของแมวแต่ละตัว ก็สะท้อนตัวตนลึก ๆ ได้ไม่ต่างจากลัคนาเลย — มันคือสิ่งที่ดึงสัญชาตญาณแท้จริงออกมา โดยที่เจ้าตัวเองก็อาจไม่ทันรู้ตัว</div>
+    <div class="title show" style="font-size:clamp(20px,3.4vw,26px); margin-top:6px;">ลัคนา${profile.ascendantItem.sign}</div>
+    <div class="reaction-line show">ของเล่นที่ใช่สำหรับคุณคือ<br><b>${profile.ascendantItem.item}</b></div>
+    <div class="reaction-line show" style="opacity:0.7;">${profile.ascendantItem.reason}</div>
+    <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
+    <div class="choice-row show">
+      <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
+      <button class="choice-btn decline" data-v="no">ยังไม่เชิง</button>
+    </div>
+    <div class="reaction-line" id="reactLine"></div>`;
+}
+function wireAscendant(){
+  bindChoice(()=> swap(happyHTML(), wireHappy));
 }
 
 /* ============ Step 5: อนาคต/ความหวัง ============ */
@@ -678,7 +702,8 @@ function runCredits(){
           <div class="tagline" id="creditsLine" style="text-align:left; min-height:3.4em;"></div>
         </div>
         <div class="reaction-line" id="restartLine" style="margin-top:26px; cursor:pointer;">↺ เริ่มใหม่</div>
-        <div class="privacy-note" style="margin-top:18px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>`;
+        <div class="privacy-note" style="margin-top:18px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>
+        <div class="privacy-note" style="margin-top:6px; opacity:0.5;">ข้อมูลแนวคิดโหราศาสตร์อ้างอิงจาก astro.meemodel.com</div>`;
       content.classList.remove('fading');
       typewrite(document.getElementById('creditsLine'),
         'สวัสดีค่ะ นี่คือโปรเจกต์ของ น.ส. ธนพร สุรเกียรติขจร ปวส.2/2 ค่ะ\nหวังว่า...',
