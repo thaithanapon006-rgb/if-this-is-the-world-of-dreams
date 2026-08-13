@@ -47,19 +47,32 @@
   #stage.rotating { transform: rotate(5deg); opacity:0; }
 
   #content {
-    width:min(560px, 90vw);
+    width:min(600px, 92vw);
     display:flex; flex-direction:column; align-items:center; text-align:center; gap:22px;
     opacity:1; transition: opacity 0.6s ease;
   }
   #content.fading { opacity:0; }
 
   .eyebrow { font-family: var(--font-ui); font-weight:300; letter-spacing:0.12em; font-size:12px; color: var(--color-text-muted); min-height:1.4em; }
-  .tagline { font-family: var(--font-ui); font-weight:300; font-size:clamp(18px,3.2vw,26px); line-height:1.7; min-height:2.4em; }
+  .tagline { font-family: var(--font-ui); font-weight:300; font-size:clamp(19px,3.2vw,26px); line-height:1.75; min-height:2.4em; }
   .cursor { display:inline-block; width:1px; height:1em; background:var(--color-text-muted); margin-left:2px; animation: blink 1s steps(2) infinite; vertical-align:-0.1em; }
   @keyframes blink { 50%{opacity:0;} }
 
-  .title { font-family: var(--font-display); font-style:italic; font-size:clamp(32px,6.4vw,52px); letter-spacing:0.04em; color: var(--color-warm-soft); text-shadow:0 0 24px rgba(240,178,122,0.35); opacity:0; transition:opacity 2s var(--ease-drift); }
+  /* .title = ใช้กับ "ชื่อสั้นๆ" เท่านั้น (ชื่อเกม, ชื่อแมวราศี, ชื่อลัคนา) — ไม่มีเรืองแสง */
+  .title { font-family: var(--font-display); font-style:italic; font-size:clamp(26px,5vw,40px); letter-spacing:0.04em; color: var(--color-warm-soft); opacity:0; transition:opacity 2s var(--ease-drift); }
   .title.show { opacity:1; }
+
+  /* .title-glow = เฉพาะหน้าเปิดเกมเท่านั้น */
+  .title-glow { font-size:clamp(32px,6.4vw,52px); text-shadow:0 0 24px rgba(240,178,122,0.35); }
+  .title-glow.show { animation: titleTwinkle 3.6s ease-in-out infinite; }
+
+  /* .content-text = ใช้กับเนื้อหาย่อหน้ายาว อ่านง่าย ใช้ฟอนต์ตัวอ่าน ไม่ใช่ฟอนต์หัวเรื่อง */
+  .content-text {
+    font-family: var(--font-body); font-weight:300; font-size:clamp(16px,2.6vw,19px);
+    line-height:1.95; color: var(--color-text-primary); max-width:480px;
+    opacity:0; transition:opacity 2s var(--ease-drift);
+  }
+  .content-text.show { opacity:1; }
 
   .pill-btn {
     font-family: var(--font-ui); font-weight:300; font-size:14px; letter-spacing:0.06em;
@@ -105,7 +118,7 @@
     border-radius:18px; padding:18px 16px;
   }
 
-  .reaction-line { font-family: var(--font-ui); font-weight:300; font-size:14px; color:var(--color-text-muted); min-height:1.4em; opacity:0; transition:opacity 1s ease; }
+  .reaction-line { font-family: var(--font-ui); font-weight:300; font-size:15.5px; line-height:1.75; color:var(--color-text-muted); min-height:1.4em; opacity:0; transition:opacity 1s ease; max-width:480px; }
   .reaction-line.show { opacity:1; }
 
   input[type=date], input[type=time] {
@@ -147,7 +160,6 @@
     0%,100% { text-shadow: 0 0 24px rgba(240,178,122,0.35), 0 0 6px rgba(247,217,184,0.4); }
     50%     { text-shadow: 0 0 42px rgba(240,178,122,0.7), 0 0 16px rgba(247,217,184,0.85); }
   }
-  .title.show { animation: titleTwinkle 3.6s ease-in-out infinite; }
 
   /* ---------- Character idle life ---------- */
   @keyframes charIdle { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-5px) scale(1.015);} }
@@ -420,7 +432,7 @@ function starCharSVG(){
 function stepOpening(){
   content.innerHTML = `
     <div class="tagline"><span id="taglineText"></span><span class="cursor"></span></div>
-    <div class="title" id="gameTitle">If This Is the World of Dreams</div>
+    <div class="title title-glow" id="gameTitle">If This Is the World of Dreams</div>
     <button class="pill-btn" id="startBtn">เริ่มสร้างตัวละคร</button>`;
   const taglineText = document.getElementById('taglineText');
   const gameTitle = document.getElementById('gameTitle');
@@ -515,9 +527,9 @@ function runLoading(){
 function careerHTML(){
   return `
     <div class="tagline">จากดวงของคุณ ตัวละครนี้คือ...</div>
-    <div class="title show" style="font-size:clamp(22px,3.8vw,30px);">${profile.zodiac.catTitle}</div>
-    <div class="reaction-line show">${profile.zodiac.trait}</div>
-    <div class="reaction-line show" style="opacity:0.7;">มักเห็นได้จาก: ${profile.zodiac.activity}</div>
+    <div class="title show" style="font-size:clamp(24px,4vw,32px);">${profile.zodiac.catTitle}</div>
+    <div class="content-text show">${profile.zodiac.trait}</div>
+    <div class="content-text show" style="opacity:0.75;">มักเห็นได้จาก: ${profile.zodiac.activity}</div>
     <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใกล้เคียงกับฉัน</button>
@@ -546,13 +558,12 @@ function bindChoice(after){
 /* ============ Step 4.5: ลัคนา (เฉพาะผู้กรอกเวลาเกิด) ============ */
 function ascendantHTML(){
   return `
-    <div class="tagline">ราศีบอกว่าคุณ "เป็นใคร" แต่ลัคนาบอกว่าคุณ "ดูเป็นใคร" ในสายตาคนแรกที่พบ<br>
-    เป็นมุมของท้องฟ้าที่ลอยขึ้นพอดีตอนที่คุณลืมตาดูโลกครั้งแรก<br>
-    รู้ได้เฉพาะคนที่รู้เวลาเกิดแน่ชัดเท่านั้น</div>
-    <div class="reaction-line show" style="opacity:0.8;">และของเล่นชิ้นโปรดของแมวแต่ละตัว ก็สะท้อนตัวตนลึก ๆ ได้ไม่ต่างจากลัคนาเลย — มันคือสิ่งที่ดึงสัญชาตญาณแท้จริงออกมา โดยที่เจ้าตัวเองก็อาจไม่ทันรู้ตัว</div>
-    <div class="title show" style="font-size:clamp(20px,3.4vw,26px); margin-top:6px;">ลัคนา${profile.ascendantItem.sign}</div>
+    <div class="content-text show">ราศีบอกว่าคุณ "เป็นใคร" แต่ลัคนาบอกว่าคุณ "ดูเป็นใคร" ในสายตาคนแรกที่พบ
+    เป็นมุมของท้องฟ้าที่ลอยขึ้นพอดีตอนที่คุณลืมตาดูโลกครั้งแรก รู้ได้เฉพาะคนที่รู้เวลาเกิดแน่ชัดเท่านั้น</div>
+    <div class="content-text show" style="opacity:0.8;">และของเล่นชิ้นโปรดของแมวแต่ละตัว ก็สะท้อนตัวตนลึก ๆ ได้ไม่ต่างจากลัคนาเลย — มันคือสิ่งที่ดึงสัญชาตญาณแท้จริงออกมา โดยที่เจ้าตัวเองก็อาจไม่ทันรู้ตัว</div>
+    <div class="title show" style="font-size:clamp(22px,3.6vw,28px); margin-top:6px;">ลัคนา${profile.ascendantItem.sign}</div>
     <div class="reaction-line show">ของเล่นที่ใช่สำหรับคุณคือ<br><b>${profile.ascendantItem.item}</b></div>
-    <div class="reaction-line show" style="opacity:0.7;">${profile.ascendantItem.reason}</div>
+    <div class="content-text show" style="opacity:0.8;">${profile.ascendantItem.reason}</div>
     <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
@@ -568,7 +579,7 @@ function wireAscendant(){
 function happyHTML(){
   return `
     <div class="tagline">อะไรคือสิ่งที่จะทำให้คุณมีความสุขและมีแรงใจต่อจากนี้?</div>
-    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.hope}</div>
+    <div class="content-text show">${profile.zodiac.hope}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
       <button class="choice-btn decline" data-v="no">ไม่ค่อยใช่</button>
@@ -581,7 +592,7 @@ function wireHappy(){ bindChoice(()=> swap(sadHTML(), wireSad)); }
 function sadHTML(){
   return `
     <div class="tagline">แล้วอะไรล่ะ ที่อาจทำให้คุณหงุดหงิดหรือหมดพลัง?</div>
-    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.obstacle}</div>
+    <div class="content-text show">${profile.zodiac.obstacle}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่ ตรงจุด</button>
       <button class="choice-btn decline" data-v="no">ไม่เชิง</button>
@@ -594,7 +605,7 @@ function wireSad(){ bindChoice(()=> swap(potentialHTML(), wirePotential)); }
 function potentialHTML(){
   return `
     <div class="tagline">ลึก ๆ แล้ว นี่คือศักยภาพที่แท้จริงของคุณหรือเปล่า?</div>
-    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.identity}</div>
+    <div class="content-text show">${profile.zodiac.identity}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่ นี่แหละฉัน</button>
       <button class="choice-btn decline" data-v="no">ยังไม่ค่อยเห็นแบบนั้น</button>
@@ -607,7 +618,7 @@ function wirePotential(){ bindChoice(()=> swap(relationshipHTML(), wireRelations
 function relationshipHTML(){
   return `
     <div class="tagline">แล้วในความสัมพันธ์ล่ะ คุณต้องการแบบนี้ไหม?</div>
-    <div class="title show" style="font-size:clamp(16px,2.8vw,21px);">${profile.zodiac.relationship}</div>
+    <div class="content-text show">${profile.zodiac.relationship}</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
       <button class="choice-btn decline" data-v="no">ไม่ค่อยตรง</button>
