@@ -719,17 +719,16 @@ function runCredits(){
     content.classList.add('fading');
     setTimeout(()=>{
       content.innerHTML = `
-        <div style="display:flex; align-items:center; gap:18px; text-align:left;">
-          <div class="char-wrap show" style="width:64px; height:64px; flex-shrink:0;">${starCharSVG()}</div>
-          <div class="tagline" id="creditsLine" style="text-align:left; min-height:3.4em;"></div>
-        </div>
-        <div class="reaction-line" id="restartLine" style="margin-top:26px; cursor:pointer;">↺ เริ่มใหม่</div>
-        <div class="privacy-note" style="margin-top:18px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>
+        <div class="char-wrap show" style="width:60px; height:60px;">${starCharSVG()}</div>
+        <div class="content-text show" id="creditsLine" style="max-width:500px;"></div>
+        <div class="reaction-line" id="restartLine" style="margin-top:10px; cursor:pointer;">↺ เริ่มใหม่</div>
+        <div class="privacy-note" style="margin-top:22px; opacity:0.6;">จัดทำโดย นางสาวธนพร สุรเกียรติขจร ปวส.2 แผนกคอมพิวเตอร์<br>ประเภทวิชาบริหารธุรกิจ สาขาวิชาเทคโนโลยีธุรกิจดิจิทัล และสาขางานดิจิทัลมีเดีย<br>วิทยาลัยเทคโนโลยีกรุงธน</div>
+        <div class="privacy-note" style="margin-top:12px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>
         <div class="privacy-note" style="margin-top:6px; opacity:0.5;">ข้อมูลแนวคิดโหราศาสตร์อ้างอิงจาก astro.meemodel.com</div>`;
       content.classList.remove('fading');
       typewrite(document.getElementById('creditsLine'),
-        'สวัสดีค่ะ นี่คือโปรเจกต์ของ น.ส. ธนพร สุรเกียรติขจร ปวส.2/2 ค่ะ\nหวังว่า...',
-        30, 600, ()=>{
+        'ขอบคุณทุกท่านที่มีส่วนร่วมกับเราจนจบ ในส่วนของคำทำนาย ท่านจะสามารถพบเจอได้เรื่อยๆ ตลอดการเดินทางของช่วงชีวิต ทุกสิ่งที่ท่านได้พบเจอแม้เป็นเรื่องร้ายหรือดี สิ่งเหล่านั้นก็ล้วนหล่อหลอมขึ้นมาเป็นท่าน การที่ท่านจะเป็นคนอย่างไรนั้นไม่ใช่เพราะสิ่งรอบข้างที่เกิดขึ้น แต่เพราะท่านเป็นผู้เลือกและตัดสินใจว่าจะเติบโตมาเป็นแมวผู้สง่างามแบบใด และแน่นอนที่แห่งนี้เป็นเพียงความฝัน ขอให้ท่านตื่นมาพบเจอกับสิ่งที่ทำให้ท่านรู้ว่าความหมายของการมีชีวิตคืออะไร',
+        22, 600, ()=>{
           setTimeout(()=>{
             const r = document.getElementById('restartLine');
             r.classList.add('show');
