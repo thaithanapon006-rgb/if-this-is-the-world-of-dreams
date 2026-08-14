@@ -486,11 +486,12 @@ function wireForm(){
 
 /* ============ Step 3: Loading + reveal ============ */
 function loadingHTML(){
-  return `<div class="loading-line" id="loadingLine" style="font-family:var(--font-ui);font-weight:300;font-size:15px;color:var(--color-text-muted);min-height:1.6em;"></div>
-    <div class="video-wrap" id="charWrap">
+  return `<div class="loading-line" id="loadingLine" style="font-family:var(--font-ui);font-weight:300;font-size:14px;color:var(--color-text-muted);min-height:1.4em;"></div>
+    <div class="video-wrap" id="charWrap" style="width:150px;">
       <video src="assets/video/${profile.zodiac.video}" muted autoplay loop playsinline></video>
     </div>
-    <div class="reaction-line" id="zLine"></div>
+    <div class="reaction-line" id="zLine" style="font-size:14px;"></div>
+    <div id="identityBlock" style="display:flex; flex-direction:column; align-items:center; gap:10px;"></div>
     <button class="pill-btn" id="letGoBtn" style="font-family:var(--font-display); font-style:italic;">Let go!</button>`;
 }
 function runLoading(){
@@ -507,14 +508,14 @@ function runLoading(){
       else setTimeout(()=>{
         charWrap.classList.add('show');
         setTimeout(()=>{
-          zLine.innerHTML = `${profile.zodiac.name} · ${profile.zodiac.catTitle}` +
-            (profile.ascendantItem ? `<br><span style="opacity:0.85;">✨ ของเล่นตามลัคนา${profile.ascendantItem.sign}: ${profile.ascendantItem.item}</span>` : '');
+          zLine.innerHTML = `${profile.zodiac.name} · <b>${profile.zodiac.catTitle}</b>` +
+            (profile.ascendantItem ? `<br><span style="opacity:0.85; font-size:13px;">✨ ของเล่นตามลัคนา${profile.ascendantItem.sign}: ${profile.ascendantItem.item}</span>` : '');
           zLine.classList.add('show');
           setTimeout(()=>{
             const btn = document.getElementById('letGoBtn');
             btn.classList.add('show');
             playChime('G5');
-            btn.onclick = ()=> swap(careerHTML(), wireCareer);
+            btn.onclick = ()=> revealIdentity();
           },1200);
         },1800);
       },700);
@@ -523,21 +524,20 @@ function runLoading(){
   next();
 }
 
-/* ============ Step 4: Identity ============ */
-function careerHTML(){
-  return `
-    <div class="tagline">จากดวงของคุณ ตัวละครนี้คือ...</div>
-    <div class="title show" style="font-size:clamp(24px,4vw,32px);">${profile.zodiac.catTitle}</div>
-    <div class="content-text show">${profile.zodiac.trait}</div>
-    <div class="content-text show" style="opacity:0.75;">มักเห็นได้จาก: ${profile.zodiac.activity}</div>
-    <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
+/* ============ Step 4: Identity (รวมอยู่ในหน้าเดียวกับวิดีโอ) ============ */
+function revealIdentity(){
+  const btn = document.getElementById('letGoBtn');
+  btn.remove();
+  const block = document.getElementById('identityBlock');
+  block.innerHTML = `
+    <div class="content-text show" style="font-size:14px; line-height:1.65; max-width:420px;">${profile.zodiac.trait}</div>
+    <div class="content-text show" style="font-size:13px; line-height:1.6; max-width:420px; opacity:0.7;">มักเห็นได้จาก: ${profile.zodiac.activity}</div>
+    <div class="reaction-line show" style="font-size:14px;">รู้สึกว่าใช่ตัวเองไหม?</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใกล้เคียงกับฉัน</button>
       <button class="choice-btn decline" data-v="no">ยังไม่ใช่ฉัน</button>
     </div>
     <div class="reaction-line" id="reactLine"></div>`;
-}
-function wireCareer(){
   bindChoice(()=> {
     if (profile.hasTime && profile.ascendantItem) swap(ascendantHTML(), wireAscendant);
     else swap(happyHTML(), wireHappy);
@@ -558,12 +558,12 @@ function bindChoice(after){
 /* ============ Step 4.5: ลัคนา (เฉพาะผู้กรอกเวลาเกิด) ============ */
 function ascendantHTML(){
   return `
-    <div class="content-text show">ราศีบอกว่าคุณ "เป็นใคร" แต่ลัคนาบอกว่าคุณ "ดูเป็นใคร" ในสายตาคนแรกที่พบ
+    <div class="reaction-line show" style="font-size:15.5px;">ราศีบอกว่าคุณ "เป็นใคร" แต่ลัคนาบอกว่าคุณ "ดูเป็นใคร" ในสายตาคนแรกที่พบ
     เป็นมุมของท้องฟ้าที่ลอยขึ้นพอดีตอนที่คุณลืมตาดูโลกครั้งแรก รู้ได้เฉพาะคนที่รู้เวลาเกิดแน่ชัดเท่านั้น</div>
-    <div class="content-text show" style="opacity:0.8;">และของเล่นชิ้นโปรดของแมวแต่ละตัว ก็สะท้อนตัวตนลึก ๆ ได้ไม่ต่างจากลัคนาเลย — มันคือสิ่งที่ดึงสัญชาตญาณแท้จริงออกมา โดยที่เจ้าตัวเองก็อาจไม่ทันรู้ตัว</div>
+    <div class="reaction-line show" style="font-size:15.5px; opacity:0.8;">และของเล่นชิ้นโปรดของแมวแต่ละตัว ก็สะท้อนตัวตนลึก ๆ ได้ไม่ต่างจากลัคนาเลย — มันคือสิ่งที่ดึงสัญชาตญาณแท้จริงออกมา โดยที่เจ้าตัวเองก็อาจไม่ทันรู้ตัว</div>
     <div class="title show" style="font-size:clamp(22px,3.6vw,28px); margin-top:6px;">ลัคนา${profile.ascendantItem.sign}</div>
     <div class="reaction-line show">ของเล่นที่ใช่สำหรับคุณคือ<br><b>${profile.ascendantItem.item}</b></div>
-    <div class="content-text show" style="opacity:0.8;">${profile.ascendantItem.reason}</div>
+    <div class="reaction-line show" style="font-size:15.5px; opacity:0.8;">${profile.ascendantItem.reason}</div>
     <div class="reaction-line show">รู้สึกว่าใช่ตัวเองไหม?</div>
     <div class="choice-row show">
       <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
@@ -625,7 +625,18 @@ function relationshipHTML(){
     </div>
     <div class="reaction-line" id="reactLine"></div>`;
 }
-function wireRelationship(){ bindChoice(()=> swap(goalHTML(), wireGoal)); }
+function wireRelationship(){ bindChoice(()=> swap(futureHTML(), wireFuture)); }
+
+/* ============ Step 8.5: คำทำนายอนาคตของคุณ (โครงหน้า — รอเนื้อหาต่อราศี) ============ */
+function futureHTML(){
+  return `
+    <div class="title show" style="font-size:clamp(24px,4vw,32px);">คำทำนายอนาคตของคุณ...</div>
+    <div class="content-text show" id="futureText">${profile.zodiac.future || 'เร็ว ๆ นี้ ดวงดาวจะเผยคำทำนายให้คุณฟัง'}</div>
+    <button class="pill-btn show" id="futureNextBtn">ต่อไป</button>`;
+}
+function wireFuture(){
+  document.getElementById('futureNextBtn').onclick = ()=> swap(goalHTML(), wireGoal);
+}
 
 /* ============ Step 9: Life goal ============ */
 function goalHTML(){
