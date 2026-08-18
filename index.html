@@ -175,6 +175,26 @@
     display:flex; flex-direction:column; align-items:center; gap:22px;
   }
   .frame-note { font-family:var(--font-ui); font-weight:300; font-size:11px; color:var(--color-warm-soft); opacity:0.85; }
+
+  /* ---------- Popup แจ้งเตือน ---------- */
+  #popupOverlay {
+    position:fixed; inset:0; background:rgba(11,15,38,0.72); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:50;
+    opacity:0; pointer-events:none; transition:opacity 0.35s ease;
+  }
+  #popupOverlay.show { opacity:1; pointer-events:auto; }
+  #popupBox {
+    background:linear-gradient(180deg, rgba(22,28,64,0.98), rgba(11,15,38,0.98));
+    border:1px solid rgba(240,201,138,0.4); border-radius:20px; padding:28px 26px;
+    max-width:320px; text-align:center; box-shadow:0 0 40px rgba(240,178,122,0.15);
+    transform:translateY(8px); transition:transform 0.35s ease;
+  }
+  #popupOverlay.show #popupBox { transform:translateY(0); }
+  #popupBox p { font-family:var(--font-ui); font-weight:300; font-size:15px; color:var(--color-text-primary); line-height:1.7; margin:0 0 18px; }
+  #popupBox button {
+    font-family:var(--font-ui); font-weight:300; font-size:13px; color:var(--color-sky-deep);
+    background:var(--color-warm-soft); border:none; padding:9px 28px; border-radius:999px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -229,6 +249,13 @@
 </svg>
 
 <button id="muteBtn" style="position:absolute; top:16px; right:16px; z-index:10; background:transparent; border:none; color:var(--color-text-muted); font-size:17px; cursor:pointer; opacity:0.55;">🔊</button>
+
+<div id="popupOverlay">
+  <div id="popupBox">
+    <p id="popupMsg"></p>
+    <button id="popupOkBtn">เข้าใจแล้ว</button>
+  </div>
+</div>
 
 <div class="hint">คลิกที่ใดก็ได้เพื่อเริ่มเสียงประกอบ (กดไอคอนมุมขวาบนเพื่อปิด/เปิดเสียง)</div>
 
@@ -285,6 +312,15 @@ muteBtn.onclick = (e)=>{
   if (!audioStarted) { Tone.start().then(initAudio); }
   if (musicPlayer) { musicPlayer.mute = muted; }
 };
+
+/* ============ Popup แจ้งเตือน ============ */
+const popupOverlay = document.getElementById('popupOverlay');
+const popupMsg = document.getElementById('popupMsg');
+function showPopup(msg){
+  popupMsg.textContent = msg;
+  popupOverlay.classList.add('show');
+}
+document.getElementById('popupOkBtn').onclick = ()=> popupOverlay.classList.remove('show');
 
 /* ============ Zodiac halo ring ============ */
 const ZODIAC_GLYPHS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
@@ -467,6 +503,10 @@ function wireForm(){
   noTime.onchange = ()=>{ timeInput.disabled = noTime.checked; timeInput.value=''; };
   document.getElementById('createBtn').onclick = ()=>{
     const dateVal = document.getElementById('birthDate').value;
+    if (!dateVal){
+      showPopup('กรุณากรอกวันเดือนปีเกิดก่อนนะคะ เพื่อให้ตัวละครของคุณถูกสร้างขึ้นได้ถูกต้อง');
+      return;
+    }
     const timeVal = timeInput.value;
     let d = new Date();
     if (dateVal){ const [y,m,day]=dateVal.split('-').map(Number); d = new Date(y,m-1,day); }
