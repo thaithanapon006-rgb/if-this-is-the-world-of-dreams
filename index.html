@@ -118,6 +118,41 @@
     border-radius:18px; padding:18px 16px;
   }
 
+  /* ---------- มินิเกม: แมวข้ามถนน ---------- */
+  #gameStage { position:relative; width:min(320px, 80vw); }
+  #gameCanvas {
+    width:100%; display:block; border-radius:18px;
+    box-shadow:0 0 30px rgba(240,178,122,0.18);
+    background:#3a6b4a;
+  }
+  #gameHud {
+    position:absolute; top:8px; left:8px; right:8px;
+    display:flex; justify-content:space-between;
+    font-family:var(--font-ui); font-weight:300; font-size:12px; color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,0.6);
+    pointer-events:none;
+  }
+  #gameBanner {
+    position:absolute; left:50%; top:36px; transform:translate(-50%,-8px);
+    width:88%; text-align:center; opacity:0; pointer-events:none;
+    background:rgba(11,15,38,0.72); backdrop-filter:blur(3px);
+    border-radius:12px; padding:8px 10px;
+    font-family:var(--font-ui); font-weight:300; font-size:12.5px; line-height:1.5; color:var(--color-text-primary);
+    transition:opacity 0.5s ease, transform 0.5s ease;
+  }
+  #gameBanner.show { opacity:1; transform:translate(-50%,0); }
+
+  #gameControls { display:flex; gap:14px; margin-top:6px; }
+  .ctrl-btn {
+    width:56px; height:56px; border-radius:16px; border:1px solid rgba(240,201,138,0.35);
+    background:rgba(255,255,255,0.06); color:var(--color-warm-soft);
+    font-size:20px; cursor:pointer; user-select:none;
+    transition:filter 0.15s ease, transform 0.1s ease;
+  }
+  .ctrl-btn:active { transform:scale(0.92); filter:brightness(1.3); }
+
+  #deathPopupBox p { margin:0 0 14px; }
+
   .reaction-line { font-family: var(--font-ui); font-weight:300; font-size:15.5px; line-height:1.75; color:var(--color-text-muted); min-height:1.4em; opacity:0; transition:opacity 1s ease; max-width:480px; }
   .reaction-line.show { opacity:1; }
 
@@ -580,7 +615,7 @@ function revealIdentity(){
     <div class="reaction-line" id="reactLine"></div>`;
   bindChoice(()=> {
     if (profile.hasTime && profile.ascendantItem) swap(ascendantHTML(), wireAscendant);
-    else swap(happyHTML(), wireHappy);
+    else swap(miniGameHTML(), wireMiniGame);
   });
 }
 function bindChoice(after){
@@ -612,73 +647,283 @@ function ascendantHTML(){
     <div class="reaction-line" id="reactLine"></div>`;
 }
 function wireAscendant(){
-  bindChoice(()=> swap(happyHTML(), wireHappy));
+  bindChoice(()=> swap(miniGameHTML(), wireMiniGame));
 }
 
-/* ============ Step 5: อนาคต/ความหวัง ============ */
-function happyHTML(){
+/* ============ Step 5: มินิเกม "แมวข้ามถนน" (แนว Crossy Road) ============ */
+function miniGameHTML(){
   return `
-    <div class="tagline">อะไรคือสิ่งที่จะทำให้คุณมีความสุขและมีแรงใจต่อจากนี้?</div>
-    <div class="content-text show">${profile.zodiac.hope}</div>
-    <div class="choice-row show">
-      <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
-      <button class="choice-btn decline" data-v="no">ไม่ค่อยใช่</button>
+    <div class="tagline" style="margin-bottom:2px;">ระหว่างทางกลับบ้าน แมวของคุณต้องข้ามถนนหลายสาย...</div>
+    <div id="gameStage">
+      <canvas id="gameCanvas"></canvas>
+      <div id="gameBanner"></div>
+      <div id="gameHud">
+        <span id="gameDistance">0 ก้าว</span>
+        <span id="gameShield" style="display:none;">✨ ใช้ได้ 1 ครั้ง</span>
+      </div>
+      <div id="gameDeathOverlay" style="position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(11,15,38,0.82); border-radius:18px; backdrop-filter:blur(2px);">
+        <div style="text-align:center; padding:0 20px;">
+          <p id="gameDeathMsg" style="font-family:var(--font-ui); font-weight:300; font-size:14px; color:var(--color-text-primary); line-height:1.7; margin-bottom:16px;"></p>
+          <button id="gameRestartBtn" class="pill-btn show" style="font-size:13px; padding:10px 26px;">เริ่มใหม่</button>
+        </div>
+      </div>
     </div>
-    <div class="reaction-line" id="reactLine"></div>`;
-}
-function wireHappy(){ bindChoice(()=> swap(sadHTML(), wireSad)); }
-
-/* ============ Step 6: อุปสรรค/การป้องกัน ============ */
-function sadHTML(){
-  return `
-    <div class="tagline">แล้วอะไรล่ะ ที่อาจทำให้คุณหงุดหงิดหรือหมดพลัง?</div>
-    <div class="content-text show">${profile.zodiac.obstacle}</div>
-    <div class="choice-row show">
-      <button class="choice-btn affirm" data-v="yes">ใช่ ตรงจุด</button>
-      <button class="choice-btn decline" data-v="no">ไม่เชิง</button>
+    <div id="gameControls">
+      <button id="btnLeft" class="ctrl-btn">◀</button>
+      <button id="btnUp" class="ctrl-btn">▲</button>
+      <button id="btnRight" class="ctrl-btn">▶</button>
     </div>
-    <div class="reaction-line" id="reactLine"></div>`;
-}
-function wireSad(){ bindChoice(()=> swap(potentialHTML(), wirePotential)); }
-
-/* ============ Step 7: ตัวตน/ศักยภาพ ============ */
-function potentialHTML(){
-  return `
-    <div class="tagline">ลึก ๆ แล้ว นี่คือศักยภาพที่แท้จริงของคุณหรือเปล่า?</div>
-    <div class="content-text show">${profile.zodiac.identity}</div>
-    <div class="choice-row show">
-      <button class="choice-btn affirm" data-v="yes">ใช่ นี่แหละฉัน</button>
-      <button class="choice-btn decline" data-v="no">ยังไม่ค่อยเห็นแบบนั้น</button>
-    </div>
-    <div class="reaction-line" id="reactLine"></div>`;
-}
-function wirePotential(){ bindChoice(()=> swap(relationshipHTML(), wireRelationship)); }
-
-/* ============ Step 8: ความสัมพันธ์ ============ */
-function relationshipHTML(){
-  return `
-    <div class="tagline">แล้วในความสัมพันธ์ล่ะ คุณต้องการแบบนี้ไหม?</div>
-    <div class="content-text show">${profile.zodiac.relationship}</div>
-    <div class="choice-row show">
-      <button class="choice-btn affirm" data-v="yes">ใช่เลย</button>
-      <button class="choice-btn decline" data-v="no">ไม่ค่อยตรง</button>
-    </div>
-    <div class="reaction-line" id="reactLine"></div>`;
-}
-function wireRelationship(){ bindChoice(()=> swap(futureHTML(), wireFuture)); }
-
-/* ============ Step 8.5: คำทำนายอนาคตของคุณ (โครงหน้า — รอเนื้อหาต่อราศี) ============ */
-function futureHTML(){
-  return `
-    <div class="title show" style="font-size:clamp(24px,4vw,32px);">คำทำนายอนาคตของคุณ...</div>
-    <div class="content-text show" id="futureText">${profile.zodiac.future || 'เร็ว ๆ นี้ ดวงดาวจะเผยคำทำนายให้คุณฟัง'}</div>
-    <button class="pill-btn show" id="futureNextBtn">ต่อไป</button>`;
-}
-function wireFuture(){
-  document.getElementById('futureNextBtn').onclick = ()=> swap(goalHTML(), wireGoal);
+    <div class="reaction-line" id="skipGameLine" style="margin-top:4px; cursor:pointer; opacity:0.55;">ข้ามส่วนนี้ →</div>`;
 }
 
-/* ============ Step 9: Life goal ============ */
+function wireMiniGame(){
+  document.getElementById('skipGameLine').onclick = ()=> swap(goalHTML(), wireGoal);
+  startCrossyGame({
+    zodiac: profile.zodiac,
+    hasShield: !!(profile.hasTime && profile.ascendantItem),
+    shieldName: profile.ascendantItem ? profile.ascendantItem.item : '',
+    onFinish: ()=> swap(goalHTML(), wireGoal),
+  });
+}
+
+/* ============ เอนจินมินิเกม: แมวข้ามถนน (แนว Crossy Road) ============ */
+function startCrossyGame(opts){
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const COLS = 7;
+  const ROWS_VISIBLE = 9;
+  const PLAYER_ROW = 6; // แถวที่ตัวละครยืนอยู่บนจอ (นับจากบน)
+  const WIN_DISTANCE = 40;
+  const BANNER_EVERY = 6;
+
+  let cssW = canvas.parentElement.clientWidth;
+  let CELL = Math.floor(cssW / COLS);
+  function resizeCanvas(){
+    cssW = canvas.parentElement.clientWidth;
+    CELL = Math.floor(cssW / COLS);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = CELL * COLS * dpr;
+    canvas.height = CELL * ROWS_VISIBLE * dpr;
+    canvas.style.height = (CELL * ROWS_VISIBLE) + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resizeCanvas();
+
+  const sprite = new Image();
+  sprite.src = 'assets/sprites/' + opts.zodiac.video.replace('.mp4', '.png');
+
+  const lanes = {}; // distance -> {type, cars:[{x,dir,speed}]}
+  lanes[0] = { type: 'safe' };
+
+  function genLane(n){
+    if (lanes[n]) return lanes[n];
+    const prev1 = lanes[n-1] && lanes[n-1].type;
+    const prev2 = lanes[n-2] && lanes[n-2].type;
+    let type;
+    if (prev1 === 'road' && prev2 === 'road') type = 'safe';
+    else type = Math.random() < 0.62 ? 'road' : 'safe';
+    const lane = { type };
+    if (type === 'road'){
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      const diffSpeed = Math.min(0.9 + n * 0.012, 2.0);
+      const carCount = n > 18 ? 2 : 1;
+      lane.dir = dir;
+      lane.cars = [];
+      for (let i=0;i<carCount;i++){
+        lane.cars.push({ x: Math.random()*COLS*CELL, speed: (0.35+Math.random()*0.25) * diffSpeed });
+      }
+    }
+    lanes[n] = lane;
+    return lane;
+  }
+
+  let state = {
+    distance: 0,
+    col: Math.floor(COLS/2),
+    shield: opts.hasShield ? 1 : 0,
+    invuln: 0,
+    dead: false,
+    finished: false,
+    anim: null, // {fromCol, fromDist, t0}
+    lineIdx: 0,
+  };
+
+  const distanceEl = document.getElementById('gameDistance');
+  const shieldEl = document.getElementById('gameShield');
+  const bannerEl = document.getElementById('gameBanner');
+  const deathOverlay = document.getElementById('gameDeathOverlay');
+  const deathMsg = document.getElementById('gameDeathMsg');
+  let deathCount = 0;
+
+  function updateHud(){
+    distanceEl.textContent = state.distance + ' ก้าว';
+    shieldEl.style.display = state.shield > 0 ? 'inline' : 'none';
+  }
+  updateHud();
+
+  let bannerTimer = null;
+  function showBanner(text){
+    bannerEl.textContent = text;
+    bannerEl.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(()=> bannerEl.classList.remove('show'), 4000);
+  }
+
+  function tryMoveForward(){
+    if (state.dead || state.finished || state.anim) return;
+    genLane(state.distance + 1);
+    state.anim = { type:'fwd', t0: performance.now() };
+    state.distance += 1;
+    updateHud();
+    if (state.distance > 0 && state.distance % BANNER_EVERY === 0 && opts.zodiac.lines){
+      showBanner(opts.zodiac.lines[state.lineIdx % opts.zodiac.lines.length]);
+      state.lineIdx++;
+    }
+    if (state.distance >= WIN_DISTANCE){
+      state.finished = true;
+      setTimeout(()=>{
+        showBanner('🏠 ถึงบ้านแล้ว');
+        playChime('E6');
+        setTimeout(()=> opts.onFinish(), 1600);
+      }, 200);
+    }
+    setTimeout(()=>{ state.anim = null; }, 150);
+  }
+  function tryMoveSide(dx){
+    if (state.dead || state.finished || state.anim) return;
+    const nc = Math.min(COLS-1, Math.max(0, state.col + dx));
+    if (nc === state.col) return;
+    state.anim = { type:'side', t0: performance.now(), fromCol: state.col };
+    state.col = nc;
+    setTimeout(()=>{ state.anim = null; }, 120);
+  }
+
+  function handleCollision(){
+    if (state.invuln > 0 || state.dead || state.finished) return;
+    if (state.shield > 0){
+      state.shield = 0;
+      state.invuln = 60; // ~1s ที่ 60fps
+      updateHud();
+      showBanner('✨ ' + opts.shieldName + ' ช่วยไว้ทัน!');
+      playChime('G5');
+      return;
+    }
+    state.dead = true;
+    deathCount++;
+    const msgs = [
+      'ไม่เป็นไรนะ ชีวิตก็งี้แหละ เริ่มใหม่ได้',
+      'เฮ้อ เอาเถอะ ยังไงก็เริ่มใหม่ได้',
+      'พักสักแป๊บนึงดีนะ... แล้วก็ลุยใหม่!!',
+    ];
+    deathMsg.textContent = msgs[Math.min(deathCount-1, msgs.length-1)];
+    deathOverlay.style.display = 'flex';
+  }
+  document.getElementById('gameRestartBtn').onclick = ()=>{
+    state.distance = 0; state.col = Math.floor(COLS/2);
+    state.shield = opts.hasShield ? 1 : 0;
+    state.invuln = 0; state.dead = false; state.anim = null;
+    updateHud();
+    deathOverlay.style.display = 'none';
+  };
+
+  /* ---------- input ---------- */
+  document.getElementById('btnUp').onclick = tryMoveForward;
+  document.getElementById('btnLeft').onclick = ()=> tryMoveSide(-1);
+  document.getElementById('btnRight').onclick = ()=> tryMoveSide(1);
+  function keyHandler(e){
+    if (!document.getElementById('gameCanvas')) { document.removeEventListener('keydown', keyHandler); return; }
+    if (e.key === 'ArrowUp') tryMoveForward();
+    else if (e.key === 'ArrowLeft') tryMoveSide(-1);
+    else if (e.key === 'ArrowRight') tryMoveSide(1);
+  }
+  document.addEventListener('keydown', keyHandler);
+
+  /* ---------- draw & loop ---------- */
+  function drawLane(screenRow, worldRow){
+    const lane = genLane(worldRow);
+    const y = screenRow * CELL;
+    ctx.fillStyle = lane.type === 'road' ? '#4a4a52' : (worldRow % 2 === 0 ? '#3a6b4a' : '#427a52');
+    ctx.fillRect(0, y, COLS*CELL, CELL);
+    if (lane.type === 'road'){
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.setLineDash([10,8]);
+      ctx.beginPath(); ctx.moveTo(0, y+CELL/2); ctx.lineTo(COLS*CELL, y+CELL/2); ctx.stroke();
+      ctx.setLineDash([]);
+      lane.cars.forEach(car=>{
+        ctx.fillStyle = '#F0B27A';
+        ctx.fillRect(car.x, y+CELL*0.18, CELL*0.8, CELL*0.64);
+      });
+    }
+  }
+
+  function checkCollisionAtPlayerRow(){
+    const lane = lanes[state.distance];
+    if (!lane || lane.type !== 'road' || state.anim) return;
+    const px = state.col * CELL;
+    for (const car of lane.cars){
+      if (car.x < px + CELL*0.85 && car.x + CELL*0.8 > px + CELL*0.15){
+        handleCollision();
+        return;
+      }
+    }
+  }
+
+  let lastT = performance.now();
+  function loop(t){
+    if (!document.getElementById('gameCanvas')) return; // หน้าเปลี่ยนไปแล้ว หยุดลูป
+    const dt = Math.min(t - lastT, 50);
+    lastT = t;
+
+    if (!state.dead && !state.finished){
+      for (const key in lanes){
+        const lane = lanes[key];
+        if (lane.type === 'road'){
+          lane.cars.forEach(car=>{
+            car.x += lane.dir * car.speed * dt * 0.3;
+            if (lane.dir > 0 && car.x > COLS*CELL) car.x = -CELL;
+            if (lane.dir < 0 && car.x < -CELL) car.x = COLS*CELL;
+          });
+        }
+      }
+      if (state.invuln > 0) state.invuln--;
+      checkCollisionAtPlayerRow();
+    }
+
+    ctx.clearRect(0,0,COLS*CELL, ROWS_VISIBLE*CELL);
+    for (let r=0; r<ROWS_VISIBLE; r++){
+      const worldRow = state.distance + (PLAYER_ROW - r);
+      if (worldRow < 0) { ctx.fillStyle = '#2a2f5c'; ctx.fillRect(0, r*CELL, COLS*CELL, CELL); continue; }
+      drawLane(r, worldRow);
+    }
+    // player
+    let px = state.col * CELL, py = PLAYER_ROW * CELL;
+    let hopOffset = 0;
+    if (state.anim){
+      const prog = Math.min(1, (performance.now() - state.anim.t0) / 150);
+      hopOffset = Math.sin(prog * Math.PI) * CELL * 0.28;
+    }
+    ctx.save();
+    if (state.invuln > 0 && Math.floor(state.invuln/6)%2===0) ctx.globalAlpha = 0.35;
+    if (state.shield > 0){
+      ctx.beginPath();
+      ctx.arc(px+CELL/2, py+CELL/2, CELL*0.56, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(240,201,138,0.85)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (sprite.complete && sprite.naturalWidth){
+      ctx.drawImage(sprite, px+CELL*0.08, py+CELL*0.08-hopOffset, CELL*0.84, CELL*0.84);
+    } else {
+      ctx.fillStyle = '#F7D9B8';
+      ctx.beginPath(); ctx.arc(px+CELL/2, py+CELL/2-hopOffset, CELL*0.32, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  window.addEventListener('resize', resizeCanvas);
+}
+
+/* ============ Step 6: Life goal ============ */
 function goalHTML(){
   return `
     <div class="tagline">ตอนนี้คุณรู้จักตัวละครตัวนี้แล้ว...<br>เป้าหมายสูงสุดในเกมชีวิตเวอร์ชันนี้ของคุณคืออะไร?</div>
