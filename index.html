@@ -221,11 +221,12 @@
   #popupBox {
     background:linear-gradient(180deg, rgba(22,28,64,0.98), rgba(11,15,38,0.98));
     border:1px solid rgba(240,201,138,0.4); border-radius:20px; padding:28px 26px;
-    max-width:320px; text-align:center; box-shadow:0 0 40px rgba(240,178,122,0.15);
+    max-width:360px; text-align:left; box-shadow:0 0 40px rgba(240,178,122,0.15);
     transform:translateY(8px); transition:transform 0.35s ease;
   }
   #popupOverlay.show #popupBox { transform:translateY(0); }
-  #popupBox p { font-family:var(--font-ui); font-weight:300; font-size:15px; color:var(--color-text-primary); line-height:1.7; margin:0 0 18px; }
+  #popupBox p { font-family:var(--font-ui); font-weight:300; font-size:14.5px; color:var(--color-text-primary); line-height:1.75; margin:0 0 18px; }
+  #popupBox { display:flex; flex-direction:column; align-items:center; }
   #popupBox button {
     font-family:var(--font-ui); font-weight:300; font-size:13px; color:var(--color-sky-deep);
     background:var(--color-warm-soft); border:none; padding:9px 28px; border-radius:999px; cursor:pointer;
@@ -351,11 +352,15 @@ muteBtn.onclick = (e)=>{
 /* ============ Popup แจ้งเตือน ============ */
 const popupOverlay = document.getElementById('popupOverlay');
 const popupMsg = document.getElementById('popupMsg');
-function showPopup(msg){
-  popupMsg.textContent = msg;
+const popupOkBtn = document.getElementById('popupOkBtn');
+function showPopup(msg, onClose){
+  popupMsg.innerHTML = msg;
   popupOverlay.classList.add('show');
+  popupOkBtn.onclick = ()=>{
+    popupOverlay.classList.remove('show');
+    if (onClose) onClose();
+  };
 }
-document.getElementById('popupOkBtn').onclick = ()=> popupOverlay.classList.remove('show');
 
 /* ============ Zodiac halo ring ============ */
 const ZODIAC_GLYPHS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
@@ -555,7 +560,13 @@ function wireForm(){
       ascendantItem = ASCENDANT_ITEMS[ascName] ? { sign: ascName, ...ASCENDANT_ITEMS[ascName] } : null;
     }
     profile = { zodiac, hasTime, ascendantItem };
-    swap(loadingHTML(), ()=>runLoading());
+    showPopup(
+      'ก่อนไปต่อ ขอบอกไว้นิดนึงนะคะ<br><br>' +
+      '🔹 ทุกครั้งที่ต้องเลือกระหว่างเกม ผลจะไม่มีถูกไม่มีผิด เลือกอะไรก็ได้ตามใจเลยค่ะ<br><br>' +
+      '🔹 วิธีเล่น: กดปุ่ม ◀ ▶ เพื่อขยับซ้าย-ขวา กดปุ่ม ▲ เพื่อเดินหน้า (ถอยหลังไม่ได้นะคะ)<br><br>' +
+      '🔹 เป้าหมาย: เก็บม้วนจดหมายให้ครบทุกม้วน',
+      ()=> swap(loadingHTML(), ()=>runLoading())
+    );
   };
 }
 
@@ -653,18 +664,29 @@ function wireAscendant(){
 /* ============ Step 5: มินิเกม "แมวข้ามถนน" (แนว Crossy Road) ============ */
 function miniGameHTML(){
   return `
-    <div class="tagline" style="margin-bottom:2px;">ระหว่างทางกลับบ้าน แมวของคุณต้องข้ามถนนหลายสาย...</div>
+    <div class="tagline" style="margin-bottom:2px;">ระหว่างทางกลับบ้าน แมวของคุณลอยอยู่กลางท้องฟ้ายามค่ำคืน คอยเก็บม้วนจดหมายที่ลอยอยู่ในพื้นที่ปลอดภัย...</div>
     <div id="gameStage">
       <canvas id="gameCanvas"></canvas>
       <div id="gameBanner"></div>
       <div id="gameHud">
-        <span id="gameDistance">0 ก้าว</span>
+        <span id="gameScrollCount">📜 0/4</span>
         <span id="gameShield" style="display:none;">✨ ใช้ได้ 1 ครั้ง</span>
       </div>
       <div id="gameDeathOverlay" style="position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(11,15,38,0.82); border-radius:18px; backdrop-filter:blur(2px);">
         <div style="text-align:center; padding:0 20px;">
           <p id="gameDeathMsg" style="font-family:var(--font-ui); font-weight:300; font-size:14px; color:var(--color-text-primary); line-height:1.7; margin-bottom:16px;"></p>
           <button id="gameRestartBtn" class="pill-btn show" style="font-size:13px; padding:10px 26px;">เริ่มใหม่</button>
+        </div>
+      </div>
+      <div id="scrollPopup" style="position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(11,15,38,0.85); border-radius:18px; backdrop-filter:blur(2px); padding:14px;">
+        <div style="text-align:center;">
+          <p id="scrollPopupIntro" style="font-family:var(--font-ui); font-weight:300; font-size:12.5px; color:var(--color-text-muted); margin:0 0 8px;"></p>
+          <p id="scrollPopupText" style="font-family:var(--font-body); font-weight:300; font-size:14px; color:var(--color-text-primary); line-height:1.7; margin:0 0 14px;"></p>
+          <div class="choice-row show" style="justify-content:center;">
+            <button class="choice-btn affirm" id="scrollYesBtn">ใกล้เคียงกับฉัน</button>
+            <button class="choice-btn decline" id="scrollNoBtn">ยังไม่ใกล้เคียง</button>
+          </div>
+          <p id="scrollReactLine" style="font-family:var(--font-ui); font-weight:300; font-size:12.5px; color:var(--color-text-muted); margin-top:10px; min-height:1.4em;"></p>
         </div>
       </div>
     </div>
@@ -686,15 +708,22 @@ function wireMiniGame(){
   });
 }
 
-/* ============ เอนจินมินิเกม: แมวข้ามถนน (แนว Crossy Road) ============ */
+/* ============ เอนจินมินิเกม: แมวลอยฟ้า เก็บม้วนจดหมาย ============ */
 function startCrossyGame(opts){
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const COLS = 7;
   const ROWS_VISIBLE = 9;
   const PLAYER_ROW = 6; // แถวที่ตัวละครยืนอยู่บนจอ (นับจากบน)
-  const WIN_DISTANCE = 40;
   const BANNER_EVERY = 6;
+  const TOTAL_SCROLLS = 4;
+  const SCROLL_CATEGORIES = ['hope','obstacle','identity','relationship'];
+  const CATEGORY_INTRO = {
+    hope: 'อะไรคือสิ่งที่จะทำให้คุณมีความสุขและมีแรงใจต่อจากนี้?',
+    obstacle: 'แล้วอะไรล่ะ ที่อาจทำให้คุณหงุดหงิดหรือหมดพลัง?',
+    identity: 'ลึก ๆ แล้ว นี่คือศักยภาพที่แท้จริงของคุณหรือเปล่า?',
+    relationship: 'แล้วในความสัมพันธ์ล่ะ คุณต้องการแบบนี้ไหม?',
+  };
 
   let cssW = canvas.parentElement.clientWidth;
   let CELL = Math.floor(cssW / COLS);
@@ -708,12 +737,24 @@ function startCrossyGame(opts){
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
   resizeCanvas();
+  canvas.style.backgroundImage = "url('assets/scene/bg-sky.jpg')";
+  canvas.style.backgroundSize = 'cover';
+  canvas.style.backgroundPosition = 'center';
 
   const sprite = new Image();
   sprite.src = 'assets/sprites/' + opts.zodiac.video.replace('.mp4', '.png');
+  const safeZoneImg = new Image();
+  safeZoneImg.src = 'assets/scene/safe-zone.png';
+  const scrollImg = new Image();
+  scrollImg.src = 'assets/scene/scroll.png';
+  const obstacleImgs = [];
+  for (let i=1;i<=12;i++){ const im = new Image(); im.src = `assets/scene/obstacle-${i}.png`; obstacleImgs.push(im); }
+  function randomObstacleImg(){ return obstacleImgs[Math.floor(Math.random()*obstacleImgs.length)]; }
 
-  const lanes = {}; // distance -> {type, cars:[{x,dir,speed}]}
+  const lanes = {}; // distance -> {type, cars:[{x,dir,speed,img}], hasScroll, scrollCol, scrollCategory, scrollTaken}
   lanes[0] = { type: 'safe' };
+  let scrollsPlaced = 0;
+  let nextScrollRow = 5 + Math.floor(Math.random()*3);
 
   function genLane(n){
     if (lanes[n]) return lanes[n];
@@ -730,8 +771,14 @@ function startCrossyGame(opts){
       lane.dir = dir;
       lane.cars = [];
       for (let i=0;i<carCount;i++){
-        lane.cars.push({ x: Math.random()*COLS*CELL, speed: (0.35+Math.random()*0.25) * diffSpeed });
+        lane.cars.push({ x: Math.random()*COLS*CELL, speed: (0.35+Math.random()*0.25) * diffSpeed, img: randomObstacleImg() });
       }
+    } else if (n > 0 && scrollsPlaced < TOTAL_SCROLLS && n >= nextScrollRow){
+      lane.hasScroll = true;
+      lane.scrollCol = Math.floor(Math.random()*COLS);
+      lane.scrollCategory = SCROLL_CATEGORIES[scrollsPlaced];
+      scrollsPlaced++;
+      nextScrollRow = n + 7 + Math.floor(Math.random()*5);
     }
     lanes[n] = lane;
     return lane;
@@ -744,19 +791,26 @@ function startCrossyGame(opts){
     invuln: 0,
     dead: false,
     finished: false,
-    anim: null, // {fromCol, fromDist, t0}
+    scrollOpen: false,
+    anim: null,
     lineIdx: 0,
+    collected: 0,
   };
+  function isBusy(){ return state.dead || state.finished || state.anim || state.scrollOpen; }
 
-  const distanceEl = document.getElementById('gameDistance');
+  const scrollCountEl = document.getElementById('gameScrollCount');
   const shieldEl = document.getElementById('gameShield');
   const bannerEl = document.getElementById('gameBanner');
   const deathOverlay = document.getElementById('gameDeathOverlay');
   const deathMsg = document.getElementById('gameDeathMsg');
+  const scrollPopup = document.getElementById('scrollPopup');
+  const scrollPopupIntro = document.getElementById('scrollPopupIntro');
+  const scrollPopupText = document.getElementById('scrollPopupText');
+  const scrollReactLine = document.getElementById('scrollReactLine');
   let deathCount = 0;
 
   function updateHud(){
-    distanceEl.textContent = state.distance + ' ก้าว';
+    scrollCountEl.textContent = `📜 ${state.collected}/${TOTAL_SCROLLS}`;
     shieldEl.style.display = state.shield > 0 ? 'inline' : 'none';
   }
   updateHud();
@@ -769,8 +823,46 @@ function startCrossyGame(opts){
     bannerTimer = setTimeout(()=> bannerEl.classList.remove('show'), 4000);
   }
 
+  function openScrollPopup(category){
+    state.scrollOpen = true;
+    scrollPopupIntro.textContent = CATEGORY_INTRO[category];
+    scrollPopupText.textContent = opts.zodiac[category];
+    scrollReactLine.textContent = '';
+    scrollPopup.style.display = 'flex';
+    const yesBtn = document.getElementById('scrollYesBtn');
+    const noBtn = document.getElementById('scrollNoBtn');
+    function closeIt(reactText, note){
+      scrollReactLine.textContent = reactText;
+      playChime(note);
+      setTimeout(()=>{
+        scrollPopup.style.display = 'none';
+        state.scrollOpen = false;
+        state.collected++;
+        updateHud();
+        if (state.collected >= TOTAL_SCROLLS){
+          state.finished = true;
+          setTimeout(()=>{
+            showBanner('🏠 เก็บครบทุกม้วนแล้ว กำลังจะถึงบ้าน...');
+            playChime('E6');
+            setTimeout(()=> opts.onFinish(), 1600);
+          }, 200);
+        }
+      }, 1100);
+    }
+    yesBtn.onclick = ()=> closeIt(pick(REACTIONS.yes), 'A5');
+    noBtn.onclick = ()=> closeIt(pick(REACTIONS.no), 'D5');
+  }
+
+  function checkScrollPickup(){
+    const lane = lanes[state.distance];
+    if (lane && lane.hasScroll && !lane.scrollTaken && lane.scrollCol === state.col){
+      lane.scrollTaken = true;
+      openScrollPopup(lane.scrollCategory);
+    }
+  }
+
   function tryMoveForward(){
-    if (state.dead || state.finished || state.anim) return;
+    if (isBusy()) return;
     genLane(state.distance + 1);
     state.anim = { type:'fwd', t0: performance.now() };
     state.distance += 1;
@@ -779,30 +871,22 @@ function startCrossyGame(opts){
       showBanner(opts.zodiac.lines[state.lineIdx % opts.zodiac.lines.length]);
       state.lineIdx++;
     }
-    if (state.distance >= WIN_DISTANCE){
-      state.finished = true;
-      setTimeout(()=>{
-        showBanner('🏠 ถึงบ้านแล้ว');
-        playChime('E6');
-        setTimeout(()=> opts.onFinish(), 1600);
-      }, 200);
-    }
-    setTimeout(()=>{ state.anim = null; }, 150);
+    setTimeout(()=>{ state.anim = null; checkScrollPickup(); }, 150);
   }
   function tryMoveSide(dx){
-    if (state.dead || state.finished || state.anim) return;
+    if (isBusy()) return;
     const nc = Math.min(COLS-1, Math.max(0, state.col + dx));
     if (nc === state.col) return;
     state.anim = { type:'side', t0: performance.now(), fromCol: state.col };
     state.col = nc;
-    setTimeout(()=>{ state.anim = null; }, 120);
+    setTimeout(()=>{ state.anim = null; checkScrollPickup(); }, 120);
   }
 
   function handleCollision(){
-    if (state.invuln > 0 || state.dead || state.finished) return;
+    if (state.invuln > 0 || isBusy()) return;
     if (state.shield > 0){
       state.shield = 0;
-      state.invuln = 60; // ~1s ที่ 60fps
+      state.invuln = 60;
       updateHud();
       showBanner('✨ ' + opts.shieldName + ' ช่วยไว้ทัน!');
       playChime('G5');
@@ -842,16 +926,20 @@ function startCrossyGame(opts){
   function drawLane(screenRow, worldRow){
     const lane = genLane(worldRow);
     const y = screenRow * CELL;
-    ctx.fillStyle = lane.type === 'road' ? '#4a4a52' : (worldRow % 2 === 0 ? '#3a6b4a' : '#427a52');
-    ctx.fillRect(0, y, COLS*CELL, CELL);
-    if (lane.type === 'road'){
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-      ctx.setLineDash([10,8]);
-      ctx.beginPath(); ctx.moveTo(0, y+CELL/2); ctx.lineTo(COLS*CELL, y+CELL/2); ctx.stroke();
-      ctx.setLineDash([]);
+    if (lane.type === 'safe'){
+      if (safeZoneImg.complete && safeZoneImg.naturalWidth){
+        ctx.drawImage(safeZoneImg, 0, y, COLS*CELL, CELL);
+      }
+      if (lane.hasScroll && !lane.scrollTaken && scrollImg.complete && scrollImg.naturalWidth){
+        const sx = lane.scrollCol*CELL;
+        ctx.drawImage(scrollImg, sx+CELL*0.2, y+CELL*0.18, CELL*0.6, CELL*0.64);
+      }
+    } else {
+      // ถนน/สิ่งกีดขวาง: ไม่วาดพื้นเลย ให้เห็นท้องฟ้าฉากหลังทะลุผ่าน ดูเหมือนลอยอยู่กลางอวกาศจริงๆ
       lane.cars.forEach(car=>{
-        ctx.fillStyle = '#F0B27A';
-        ctx.fillRect(car.x, y+CELL*0.18, CELL*0.8, CELL*0.64);
+        if (car.img && car.img.complete && car.img.naturalWidth){
+          ctx.drawImage(car.img, car.x, y+CELL*0.1, CELL*0.8, CELL*0.8);
+        }
       });
     }
   }
@@ -874,7 +962,7 @@ function startCrossyGame(opts){
     const dt = Math.min(t - lastT, 50);
     lastT = t;
 
-    if (!state.dead && !state.finished){
+    if (!state.dead && !state.finished && !state.scrollOpen){
       for (const key in lanes){
         const lane = lanes[key];
         if (lane.type === 'road'){
@@ -892,11 +980,12 @@ function startCrossyGame(opts){
     ctx.clearRect(0,0,COLS*CELL, ROWS_VISIBLE*CELL);
     for (let r=0; r<ROWS_VISIBLE; r++){
       const worldRow = state.distance + (PLAYER_ROW - r);
-      if (worldRow < 0) { ctx.fillStyle = '#2a2f5c'; ctx.fillRect(0, r*CELL, COLS*CELL, CELL); continue; }
+      if (worldRow < 0) continue; // ปล่อยโปร่งใส เห็นฉากหลังท้องฟ้า
       drawLane(r, worldRow);
     }
     // player
     let px = state.col * CELL, py = PLAYER_ROW * CELL;
+    const idleBob = Math.sin(t/280) * CELL*0.055; // ขยับขึ้นลงตลอดเวลาเหมือนกำลังลอย/กระโดดเบาๆ
     let hopOffset = 0;
     if (state.anim){
       const prog = Math.min(1, (performance.now() - state.anim.t0) / 150);
@@ -909,11 +998,12 @@ function startCrossyGame(opts){
       ctx.arc(px+CELL/2, py+CELL/2, CELL*0.56, 0, Math.PI*2);
       ctx.strokeStyle = 'rgba(240,201,138,0.85)'; ctx.lineWidth = 2; ctx.stroke();
     }
+    const playerY = py - hopOffset - idleBob;
     if (sprite.complete && sprite.naturalWidth){
-      ctx.drawImage(sprite, px+CELL*0.08, py+CELL*0.08-hopOffset, CELL*0.84, CELL*0.84);
+      ctx.drawImage(sprite, px+CELL*0.06, playerY+CELL*0.06, CELL*0.88, CELL*0.88);
     } else {
       ctx.fillStyle = '#F7D9B8';
-      ctx.beginPath(); ctx.arc(px+CELL/2, py+CELL/2-hopOffset, CELL*0.32, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px+CELL/2, playerY+CELL/2, CELL*0.32, 0, Math.PI*2); ctx.fill();
     }
     ctx.restore();
 
