@@ -80,6 +80,7 @@
     padding:13px 34px; border-radius:999px; cursor:pointer;
     opacity:0; transform:translateY(6px);
     transition: opacity 1.2s var(--ease-drift), transform 1.2s var(--ease-drift), filter 0.2s ease, box-shadow 0.2s ease;
+    touch-action:manipulation;
   }
   .pill-btn.show { opacity:1; transform:translateY(0); }
   .pill-btn:hover { filter:brightness(1.05); box-shadow:0 0 22px rgba(240,178,122,0.45); }
@@ -90,6 +91,7 @@
     font-family: var(--font-ui); font-weight:300; font-size:13px; letter-spacing:0.04em;
     border:none; padding:11px 24px; border-radius:999px; cursor:pointer; color:var(--color-sky-deep);
     transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    touch-action:manipulation;
   }
   .choice-btn.affirm { background: var(--color-affirm); }
   .choice-btn.decline { background: var(--color-decline); color: var(--color-text-primary); }
@@ -123,7 +125,6 @@
   #gameCanvas {
     width:100%; display:block; border-radius:18px;
     box-shadow:0 0 30px rgba(240,178,122,0.18);
-    background:#3a6b4a;
   }
   #gameHud {
     position:absolute; top:8px; left:8px; right:8px;
@@ -148,6 +149,7 @@
     background:rgba(255,255,255,0.06); color:var(--color-warm-soft);
     font-size:20px; cursor:pointer; user-select:none;
     transition:filter 0.15s ease, transform 0.1s ease;
+    touch-action:manipulation; /* กันเบราว์เซอร์มือถือตีความแตะรัวๆ (double-tap) เป็นการซูมหน้าเว็บ */
   }
   .ctrl-btn:active { transform:scale(0.92); filter:brightness(1.3); }
 
@@ -713,9 +715,8 @@ function startCrossyGame(opts){
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const COLS = 7;
-  const ROWS_VISIBLE = 9;
-  const PLAYER_ROW = 6; // แถวที่ตัวละครยืนอยู่บนจอ (นับจากบน)
-  const BANNER_EVERY = 6;
+  const ROWS_VISIBLE = 12; // อัตราส่วน 7:12 ≈ 9:16 (แนวตั้ง)
+  const PLAYER_ROW = 9; // แถวที่ตัวละครยืนอยู่บนจอ (นับจากบน)
   const TOTAL_SCROLLS = 4;
   const SCROLL_CATEGORIES = ['hope','obstacle','identity','relationship'];
   const CATEGORY_INTRO = {
@@ -730,25 +731,20 @@ function startCrossyGame(opts){
   function resizeCanvas(){
     cssW = canvas.parentElement.clientWidth;
     CELL = Math.floor(cssW / COLS);
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // จำกัด DPR ลดภาระเรนเดอร์บนจอความละเอียดสูง
     canvas.width = CELL * COLS * dpr;
     canvas.height = CELL * ROWS_VISIBLE * dpr;
     canvas.style.height = (CELL * ROWS_VISIBLE) + 'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
   resizeCanvas();
-  canvas.style.backgroundImage = "url('assets/scene/bg-sky.jpg')";
-  canvas.style.backgroundSize = 'cover';
-  canvas.style.backgroundPosition = 'center';
 
   const sprite = new Image();
   sprite.src = 'assets/sprites/' + opts.zodiac.video.replace('.mp4', '.png');
-  const safeZoneImg = new Image();
-  safeZoneImg.src = 'assets/scene/safe-zone.png';
   const scrollImg = new Image();
   scrollImg.src = 'assets/scene/scroll.png';
   const obstacleImgs = [];
-  for (let i=1;i<=12;i++){ const im = new Image(); im.src = `assets/scene/obstacle-${i}.png`; obstacleImgs.push(im); }
+  for (let i=1;i<=4;i++){ const im = new Image(); im.src = `assets/scene/obstacle-${i}.png`; obstacleImgs.push(im); }
   function randomObstacleImg(){ return obstacleImgs[Math.floor(Math.random()*obstacleImgs.length)]; }
 
   const lanes = {}; // distance -> {type, cars:[{x,dir,speed,img}], hasScroll, scrollCol, scrollCategory, scrollTaken}
@@ -782,6 +778,13 @@ function startCrossyGame(opts){
     }
     lanes[n] = lane;
     return lane;
+  }
+  function pruneLanes(){
+    // ลบเลนที่เลยตัวละครไปไกลแล้วออกจากหน่วยความจำ ไม่งั้นลูปอัปเดตรถจะช้าลงเรื่อยๆ เมื่อเล่นนานขึ้น (สาเหตุหลักของอาการกระตุก)
+    const cutoff = state.distance - 2;
+    for (const key in lanes){
+      if (Number(key) < cutoff) delete lanes[key];
+    }
   }
 
   let state = {
@@ -867,10 +870,7 @@ function startCrossyGame(opts){
     state.anim = { type:'fwd', t0: performance.now() };
     state.distance += 1;
     updateHud();
-    if (state.distance > 0 && state.distance % BANNER_EVERY === 0 && opts.zodiac.lines){
-      showBanner(opts.zodiac.lines[state.lineIdx % opts.zodiac.lines.length]);
-      state.lineIdx++;
-    }
+    pruneLanes();
     setTimeout(()=>{ state.anim = null; checkScrollPickup(); }, 150);
   }
   function tryMoveSide(dx){
@@ -927,15 +927,14 @@ function startCrossyGame(opts){
     const lane = genLane(worldRow);
     const y = screenRow * CELL;
     if (lane.type === 'safe'){
-      if (safeZoneImg.complete && safeZoneImg.naturalWidth){
-        ctx.drawImage(safeZoneImg, 0, y, COLS*CELL, CELL);
-      }
+      ctx.fillStyle = 'rgba(180,200,230,0.16)'; // โทนเย็นอ่อนๆ ให้ต่างจากพื้นหลังเว็บแบบนุ่มนวล ไม่ใช้ภาพ
+      ctx.fillRect(0, y, COLS*CELL, CELL);
       if (lane.hasScroll && !lane.scrollTaken && scrollImg.complete && scrollImg.naturalWidth){
         const sx = lane.scrollCol*CELL;
         ctx.drawImage(scrollImg, sx+CELL*0.2, y+CELL*0.18, CELL*0.6, CELL*0.64);
       }
     } else {
-      // ถนน/สิ่งกีดขวาง: ไม่วาดพื้นเลย ให้เห็นท้องฟ้าฉากหลังทะลุผ่าน ดูเหมือนลอยอยู่กลางอวกาศจริงๆ
+      // ถนน/สิ่งกีดขวาง: ไม่วาดพื้นเลย ให้เห็นพื้นหลังเว็บทะลุผ่าน ดูเหมือนลอยอยู่กลางอวกาศจริงๆ
       lane.cars.forEach(car=>{
         if (car.img && car.img.complete && car.img.naturalWidth){
           ctx.drawImage(car.img, car.x, y+CELL*0.1, CELL*0.8, CELL*0.8);
@@ -1095,23 +1094,25 @@ function runCredits(){
     setTimeout(()=>{
       content.innerHTML = `
         <div class="char-wrap show" style="width:60px; height:60px;">${starCharSVG()}</div>
-        <div class="content-text show" id="creditsLine" style="max-width:500px;"></div>
+        <div id="creditsLine" style="max-width:500px; font-family:var(--font-body); font-weight:300; font-size:clamp(16px,2.6vw,19px); line-height:1.95; color:var(--color-text-primary); opacity:0; filter:blur(10px); transition:opacity 2.2s ease, filter 2.2s ease;"></div>
         <div class="reaction-line" id="restartLine" style="margin-top:10px; cursor:pointer;">↺ เริ่มใหม่</div>
         <div class="privacy-note" style="margin-top:22px; opacity:0.6;">จัดทำโดย นางสาวธนพร สุรเกียรติขจร ปวส.2 แผนกคอมพิวเตอร์<br>ประเภทวิชาบริหารธุรกิจ สาขาวิชาเทคโนโลยีธุรกิจดิจิทัล และสาขางานดิจิทัลมีเดีย<br>วิทยาลัยเทคโนโลยีกรุงธน</div>
         <div class="privacy-note" style="margin-top:12px; opacity:0.5;">เพลงประกอบ: "Merry Christmas, Mr. Lawrence" (Ryuichi Sakamoto) เรียบเรียงเปียโนโดย NhatQuangMusescore — ใช้ภายใต้สัญญาอนุญาต CC BY 4.0</div>
         <div class="privacy-note" style="margin-top:6px; opacity:0.5;">ข้อมูลแนวคิดโหราศาสตร์อ้างอิงจาก astro.meemodel.com</div>`;
       content.classList.remove('fading');
-      typewrite(document.getElementById('creditsLine'),
-        'ขอบคุณทุกท่านที่มีส่วนร่วมกับเราจนจบ ในส่วนของคำทำนาย ท่านจะสามารถพบเจอได้เรื่อยๆ ตลอดการเดินทางของช่วงชีวิต ทุกสิ่งที่ท่านได้พบเจอแม้เป็นเรื่องร้ายหรือดี สิ่งเหล่านั้นก็ล้วนหล่อหลอมขึ้นมาเป็นท่าน การที่ท่านจะเป็นคนอย่างไรนั้นไม่ใช่เพราะสิ่งรอบข้างที่เกิดขึ้น แต่เพราะท่านเป็นผู้เลือกและตัดสินใจว่าจะเติบโตมาเป็นแมวผู้สง่างามแบบใด และแน่นอนที่แห่งนี้เป็นเพียงความฝัน ขอให้ท่านตื่นมาพบเจอกับสิ่งที่ทำให้ท่านรู้ว่าความหมายของการมีชีวิตคืออะไร',
-        22, 600, ()=>{
-          setTimeout(()=>{
-            const r = document.getElementById('restartLine');
-            r.classList.add('show');
-            r.onclick = ()=> location.reload();
-          }, 1200);
-        });
-    }, 500);
-  }, 1500);
+      const creditsLine = document.getElementById('creditsLine');
+      creditsLine.textContent = 'ขอบคุณทุกท่านที่มีส่วนร่วมกับเราจนจบ แม้คำทำนายของเราจะตรงกับท่านหรือไม่ เราก็ดีใจที่ท่านรู้จักตัวตนของท่านเป็นอย่างดี และแน่นอนที่แห่งนี้เป็นเพียงความฝัน ขอให้ท่านตื่นมาพบเจอกับสิ่งที่ทำให้ท่านรู้ว่าความหมายของการมีชีวิตคืออะไร';
+      requestAnimationFrame(()=>{
+        creditsLine.style.opacity = '1';
+        creditsLine.style.filter = 'blur(0px)';
+      });
+      setTimeout(()=>{
+        const r = document.getElementById('restartLine');
+        r.classList.add('show');
+        r.onclick = ()=> location.reload();
+      }, 2600);
+    }, 400);
+  }, 700);
 }
 
 /* ============ Boot ============ */
